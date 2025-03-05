@@ -171,64 +171,40 @@ func fetchProblemList(token: String, studentBookId: String, completion: @escapin
 }
 
 // MARK: - submitProblems
-func submitProblems(token: String, studentBookId: String, completion: @escaping (Result<ProblemListResponse, Error>) -> Void) {
-//    var urlComponents = URLComponents(string: "https://api.mathflat.com/student-worksheet/assign/\(studentBookId)/problem")!  기본 URL 설정
-    
-    guard let url = URL(string: "https://api.mathflat.com/student-worksheet/assign/\(studentBookId)/problem") else {
+func submitProblems(token: String, studentBookId: String, submitProblems: [SubmitProblem], completion: @escaping (Result<String, Error>) -> Void) {
+    guard let url = URL(string: "https://api.mathflat.com/student-worksheet/assign/\(studentBookId)/auto-scoring") else {
         let error = NSError(domain: "URL 생성 에러", code: -1, userInfo: [NSLocalizedDescriptionKey: "잘못된 URL 형식입니다."])
         completion(.failure(error))
         return
     }
     
     var request = URLRequest(url: url)
-    request.httpMethod = "GET"
-
+    request.httpMethod = "PATCH"
+    
     request.setValue("STUDENT", forHTTPHeaderField: "x-platform")
     request.setValue(token, forHTTPHeaderField: "x-auth-token")
-
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    
+    do {
+        let jsonData = try JSONEncoder().encode(submitProblems)
+        request.httpBody = jsonData
+    } catch {
+        print("submitProblems JSON 인코딩 에러: \(error)")
+        completion(.failure(error))
+        return
+    }
+    
     let task = URLSession.shared.dataTask(with: request) { data, response, error in
         if let error = error {
+            print("네트워크 요청 에러: \(error)")
             completion(.failure(error))
             return
         }
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            let error = NSError(domain: "HTTP 응답 에러", code: -2, userInfo: [NSLocalizedDescriptionKey: "HTTP 응답이 아닙니다."])
-            completion(.failure(error))
-            return
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let error = NSError(domain: "HTTP 상태 코드 에러", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "상태 코드: \(httpResponse.statusCode)"])
-            completion(.failure(error))
-            return
-        }
-
-        guard let data = data else {
-            let error = NSError(domain: "데이터 에러", code: -3, userInfo: [NSLocalizedDescriptionKey: "데이터가 없습니다."])
-            completion(.failure(error))
-            return
-        }
-        
-        if let rawDataString = String(data: data, encoding: .utf8) {
-            print("===== Raw HomeworkList Data Start =====")
-            print(rawDataString)
-            print("===== Raw HomeworkList Data End =====")
-        } else {
-            print("Raw 데이터 변환 실패") // UTF8 인코딩 실패 시 에러 출력
-        }
-
-
-        do {
-            let decoder = JSONDecoder()
-            let problemListResponse = try decoder.decode(ProblemListResponse.self, from: data)
-            completion(.success(problemListResponse))
-        } catch {
-            completion(.failure(error))
-        }
+        completion(.success("nil"))
     }
     task.resume()
 }
+
 
 // MARK: - Login Codable
 struct LoginResponce: Codable {
@@ -376,6 +352,13 @@ struct Sort: Codable {
     let sorted: Bool?
     let unsorted: Bool?
     let empty: Bool?
+}
+
+// MARK: - SubmitProblem
+struct SubmitProblem: Codable {
+    let worksheetProblemId: Int
+    let unknown: Bool
+    let userAnswer: String
 }
 
 //struct ProblemListResponse: Codable {
