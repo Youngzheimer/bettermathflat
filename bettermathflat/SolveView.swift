@@ -19,10 +19,13 @@ struct SolveView: View {
     @State var currentAnswerSubmited = false
     @State var submittingAnswer = false
     @State var currentAnswerDontKnow: Bool = false
+    @State var useranswers: [UserAnswer] = []
+    @State var onlyViewUnsolvedProblems = false
     
     @State var showExpVideo: Bool = false
     @State var expVideoURL: URL = URL(string: "https://google.com")!
     @State var isThereExpVideo: Bool = false
+    @State var showExpImage: Bool = false
 
     var studentBookId: String
     @State var problemList: [ProblemItem] = []
@@ -32,10 +35,62 @@ struct SolveView: View {
         VStack(spacing: 10) { // 요소 간 간격 조정
             if !problemList.isEmpty && currentProblem < problemList.count {
                 // MARK: - 문제 번호 표시
-                Text("\(currentProblem + 1) / \(problemList.count)")
-                    .font(.headline) // 폰트 조정
-                    .foregroundColor(.secondary) // 색상 조정
-                    .frame(maxWidth: .infinity, alignment: .center)
+                HStack {
+                    Text("\(currentProblem + 1) / \(problemList.count)")
+                        .font(.headline) // 폰트 조정
+                        .foregroundColor(.secondary) // 색상 조정
+                    
+                    Text("•")
+                    
+                    Menu("Go To...") {
+                        ForEach(problemList.indices, id: \.self) { index in
+                            HStack {
+                                Button() {
+                                    gotoPage(pagenum: index)
+                                } label: {
+                                    if let useranswer = useranswers.first(where: { $0.problemIndex == index }) {
+                                        if (!useranswer.submited) {
+                                            if (useranswer.idk) {
+                                                ProblemIndicatorView(color: Color.yellow, systemName: "questionmark.circle", index: index + 1)
+                                            } else if (useranswer.answer == "") {
+                                                ProblemIndicatorView(color: Color.gray, systemName: "ellipsis.circle", index: index + 1)
+                                            } else {
+                                                ProblemIndicatorView(color: Color.white, systemName: "pencil.circle", index: index + 1)
+                                            }
+                                        } else {
+                                            if (problemList[index].result! == "CORRECT") {
+                                                ProblemIndicatorView(color: Color.green, systemName: "checkmark.circle", index: index + 1)
+                                            } else if (problemList[index].result! == "WRONG") {
+                                                ProblemIndicatorView(color: Color.red, systemName: "xmark.circle", index: index + 1)
+                                            } else {
+                                                ProblemIndicatorView(color: Color.yellow, systemName: "questionmark.circle", index: index + 1)
+                                            }
+
+//                                            ProblemIndicatorView(color: Color.green, systemName: "checkmark.circle", index: index + 1)
+                                        }
+
+                                    } else {
+                                        if (problemList[index].result! == "NONE") {
+                                            ProblemIndicatorView(color: Color.gray, systemName: "ellipsis.circle", index: index + 1)
+                                        } else if (problemList[index].result! == "CORRECT") {
+                                            ProblemIndicatorView(color: Color.green, systemName: "checkmark.circle", index: index + 1)
+                                        } else if (problemList[index].result! == "WRONG") {
+                                            ProblemIndicatorView(color: Color.red, systemName: "xmark.circle", index: index + 1)
+                                        } else {
+                                            ProblemIndicatorView(color: Color.yellow, systemName: "questionmark.circle", index: index + 1)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Text("•")
+                    
+                    Button("Unsolved Only") {
+                        onlyViewUnsolvedProblems.toggle()
+                    }.foregroundStyle(onlyViewUnsolvedProblems ? Color.blue : Color.gray)
+                }.frame(maxWidth: .infinity, alignment: .center)
                     
                 // MARK: - 정답 상태 / 해설 / 정답률  표시
                 HStack {
@@ -57,21 +112,58 @@ struct SolveView: View {
                     
                     if (isThereExpVideo) {
                         Button("해설 영상") {
+                            showExpImage = false
                             showExpVideo.toggle()
                         }
                         
                         Text("•")
                     }
                     
+                    Button("해설") {
+                        showExpVideo = false
+                        showExpImage.toggle()
+                    }
+                    
+                    Text("•")
+                    
                     Text("정답률: \(String(describing: problemList[currentProblem].problem!.problemSummary!.answerRate!))%")
                 }
                 
                 if (showExpVideo) {
                     VideoPlayerView(videoURL: $expVideoURL)
+                } else if (showExpImage) {
+                    VStack {
+                    if let problemImageUrl = problemList[currentProblem].problem?.solutionImageUrl {
+                        AsyncImage(url: URL(string: problemImageUrl)) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                            case .failure:
+                                Image(systemName: "x.circle.fill")
+                                    .foregroundColor(.red)
+                            @unknown default:
+                                Image(systemName: "questionmark.circle.fill")
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(20)
+                    } else {
+                        Text("해답 이미지 URL이 없습니다.")
+                            .foregroundColor(.gray)
+                    }
+                }
+                .frame(maxHeight: 300)
+                .background(Color.white)
+                .cornerRadius(10)
+                .padding(20)
                 }
                 
-                // MARK: - 문제 이미지
-                if (!showExpVideo) {
+                else {
+                    // MARK: - 문제 이미지
                     VStack {
                         if let problemImageUrl = problemList[currentProblem].problem?.problemImageUrl {
                             AsyncImage(url: URL(string: problemImageUrl)) { phase in
@@ -129,6 +221,20 @@ struct SolveView: View {
                         
                         if (currentProblem > 0) {
                             currentProblem -= 1
+                            
+                            if (onlyViewUnsolvedProblems) {
+                                while (currentProblem > 0) {
+                                    if let userAnswer = useranswers.first(where: { $0.problemIndex == currentProblem }) {
+                                        if (userAnswer.answer != "" || userAnswer.submited) {
+                                            currentProblem -= 1
+                                        } else {
+                                            break
+                                        }
+                                    } else {
+                                        break
+                                    }
+                                }
+                            }
                         }
                         
                         pageUpdate()
@@ -191,6 +297,22 @@ struct SolveView: View {
                         
                         if (currentProblem < problemList.count - 1) {
                             currentProblem += 1
+                            
+                                
+                            if (onlyViewUnsolvedProblems) {
+                                while (currentProblem < problemList.count - 1) {
+                                    print("Checking \(currentProblem)")
+                                    if let userAnswer = useranswers.first(where: { $0.problemIndex == currentProblem }) {
+                                        if (userAnswer.answer != "" || userAnswer.submited) {
+                                            currentProblem += 1
+                                        } else {
+                                            break
+                                        }
+                                    } else {
+                                        break
+                                    }
+                                }
+                            }
                         }
                         
                         pageUpdate()
@@ -226,8 +348,18 @@ struct SolveView: View {
         
     }
     
+    private func gotoPage(pagenum: Int) {
+        if (!currentAnswerSubmited) { saveUserAnswer(answer: currentAnswer, studentBookId: studentBookId, problemIndex: currentProblem, idk: currentAnswerDontKnow, submited: false) }
+        
+        currentProblem = pagenum
+        
+        pageUpdate()
+
+    }
+    
     private func pageUpdate() {
         showExpVideo = false
+        showExpImage = false
         if (problemList[currentProblem].problem!.video != nil) {
             expVideoURL = URL(string: problemList[currentProblem].problem!.video!.videoUrl!)!
             isThereExpVideo = true
@@ -251,6 +383,11 @@ struct SolveView: View {
             currentAnswer = ""
             currentAnswerSubmited = false
             currentAnswerDontKnow = false
+        }
+        
+        let loadedUserAnswers = loadUserAnswer(studentBookId: studentBookId)
+        if (loadedUserAnswers != nil) {
+            useranswers = loadedUserAnswers!
         }
         
         submittingAnswer = false
@@ -281,6 +418,54 @@ struct SolveView: View {
 //            }
 //        }
 //    }
+}
+
+struct ProblemSelectMenuView: View {
+    let useranswers: [UserAnswer]
+    let index: Int
+    let problemList: [ProblemItem]
+    
+    var body: some View {
+        if let useranswer = useranswers.first(where: { $0.problemIndex == index }) {
+            if (!useranswer.submited) {
+                if (useranswer.idk) {
+                    ProblemIndicatorView(color: Color.yellow, systemName: "questionmark.circle", index: index + 1)
+                } else if (useranswer.answer == "") {
+                    ProblemIndicatorView(color: Color.primary, systemName: "ellipsis.circle", index: index + 1)
+                } else {
+                    ProblemIndicatorView(color: Color.gray, systemName: "ellipsis.circle", index: index + 1)
+                }
+            } else {
+                if (problemList[index].result! == "CORRECT") {
+                    ProblemIndicatorView(color: Color.green, systemName: "checkmark.circle", index: index + 1)
+                    
+                } else if (problemList[index].result! == "WRONG") {
+                    ProblemIndicatorView(color: Color.red, systemName: "xmark.circle", index: index + 1)
+                } else {
+                    ProblemIndicatorView(color: Color.yellow, systemName: "questionmark.circle", index: index + 1)
+                }
+                
+                //                                            ProblemIndicatorView(color: Color.green, systemName: "checkmark.circle", index: index + 1)
+            }
+            
+        } else {
+            ProblemIndicatorView(color: Color.gray, systemName: "ellipsis.circle", index: index + 1)
+        }
+    }
+}
+
+struct ProblemIndicatorView: View {
+    let color: Color
+    let systemName: String
+    let index: Int
+    
+    var body: some View {
+        Text("Problem \(index)")
+            .foregroundStyle(color)
+        Image(systemName: systemName)
+            .symbolRenderingMode(.palette)
+            .foregroundColor(color)
+    }
 }
 
 // MARK: - Custom Button Style (모던 버튼 스타일)
@@ -330,5 +515,5 @@ struct AnswerEnterView: View {
 }
 
 #Preview {
-    SolveView(studentBookId: "61317886")
+    SolveView(studentBookId: "61562121")
 }

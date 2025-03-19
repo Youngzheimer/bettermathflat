@@ -78,20 +78,26 @@ struct ContentView: View {
                 problems = (problemListResponse.data?.content!)!
                 answers!.forEach { answer in
                     if (!answer.submited && answer.answer != "") {
-                        print(answer)
-                        let sub = SubmitProblem(
-                            worksheetProblemId: problems[answer.problemIndex].worksheetProblemId!,
-                            unknown: answer.idk,
-                            userAnswer: convertToLatexFraction(answer.answer)
-                        )
-                        submitProblems(token: userData!.token, studentBookId: studentBookId, submitProblems: [sub]) { result in
-                            switch result {
-                            case .success:
-                                break
-                            case .failure(let error):
-                                print("실패 \(error)")
+//                        if (problems[answer.problemIndex].problem!.type == "SINGLE_CHOICE") {
+                        if (problems[answer.problemIndex].problem!.keypadTypes == ["DECIMAL"]) {
+                            print(answer)
+                            let sub = SubmitProblem(
+                                worksheetProblemId: problems[answer.problemIndex].worksheetProblemId!,
+                                unknown: answer.idk,
+                                userAnswer: convertToLatexFraction(answer.answer)
+                            )
+                            submitProblems(token: userData!.token, studentBookId: studentBookId, submitProblems: [sub]) { result in
+                                switch result {
+                                case .success:
+                                    break
+                                case .failure(let error):
+                                    print("실패 \(error)")
+                                }
                             }
                         }
+//                        } else if (problems[answer.problemIndex].problem!.keypadTypes == ["DECIMAL"]) {
+//                            
+//                        }
                     }
                 }
             case .failure(let error):
@@ -149,55 +155,57 @@ struct ContentView: View {
 //                }
 
                 VStack(spacing: 30) {
-                    ForEach(homeworks, id: \.id) { homework in
-                        let studentBookId = homework.studentBookId ?? 0
-                        let savedCount = getSavedAnswersCount(studentBookId: studentBookId)
-                        
-                        HStack {
-                            NavigationLink(destination: SolveView(studentBookId: String(homework.studentBookId ?? 0))
-                                .navigationTitle(homework.title ?? "풀이하기")) {
-                                    // Content of the NavigationLink
-                                    HStack {
-                                        VStack() {
-                                            Text("제목: \(homework.title ?? "제목 없음")")
-                                                .font(.headline)
-                                            Spacer()
-                                            Text("생성일: \(homework.updateDateTime ?? "마감일 없음")")
-                                                .font(.subheadline)
-                                        }
-                                        Spacer()
-                                        VStack() {
-                                            if (homework.status == "COMPLETE") {
-                                                Image(systemName: "checkmark.circle")
-                                                    .foregroundStyle(Color.blue)
-                                            } else if (homework.status == "INCOMPLETE") {
-                                                Image(systemName: "x.circle")
-                                                    .foregroundStyle(Color.red)
-                                            } else {
-                                                Image(systemName: "triangle.circle")
-                                                    .foregroundStyle(Color.yellow)
-                                            }
-                                            Spacer()
-                                            if (homework.status == "COMPLETED") {
-                                                Text("Complete")
-                                            } else {
-                                                Text("\(String(homework.solvedCount ?? 0)) (\(savedCount)) / \(String(homework.totalCount ?? 0))")
-                                            }
-                                        }
-                                    }
-                                    .frame(width: 300, height: 60)
-                                    .padding(20)
-                                    .background(Color.gray.opacity(0.3).clipShape(RoundedRectangle(cornerRadius:20)))
-                                }
+                    ScrollView {
+                        ForEach(homeworks, id: \.id) { homework in
+                            let studentBookId = homework.studentBookId ?? 0
+                            let savedCount = getSavedAnswersCount(studentBookId: studentBookId)
                             
-                            // Submit All button outside of the NavigationLink
-//                            Button(action: {
-//                                let bookId = String(homework.studentBookId ?? 0)
-//                                self.submitAnswers(studentBookId: bookId)
-//                            }) {
-//                                Text("Submit All")
-//                            }
-//                            .padding(.horizontal, 10)
+                            HStack {
+                                NavigationLink(destination: SolveView(studentBookId: String(homework.studentBookId ?? 0))
+                                    .navigationTitle(homework.title ?? "풀이하기")) {
+                                        // Content of the NavigationLink
+                                        HStack {
+                                            VStack() {
+                                                Text("제목: \(homework.title ?? "제목 없음")")
+                                                    .font(.headline)
+                                                Spacer()
+                                                Text("생성일: \(homework.updateDateTime ?? "마감일 없음")")
+                                                    .font(.subheadline)
+                                            }
+                                            Spacer()
+                                            VStack() {
+                                                if (homework.status == "COMPLETE") {
+                                                    Image(systemName: "checkmark.circle")
+                                                        .foregroundStyle(Color.blue)
+                                                } else if (homework.status == "INCOMPLETE") {
+                                                    Image(systemName: "x.circle")
+                                                        .foregroundStyle(Color.red)
+                                                } else {
+                                                    Image(systemName: "triangle.circle")
+                                                        .foregroundStyle(Color.yellow)
+                                                }
+                                                Spacer()
+                                                if (homework.status == "COMPLETED") {
+                                                    Text("Complete")
+                                                } else {
+                                                    Text("\(String(homework.solvedCount ?? 0)) (\(savedCount)) / \(String(homework.totalCount ?? 0))")
+                                                }
+                                            }
+                                        }
+                                        .frame(width: 300, height: 60)
+                                        .padding(20)
+                                        .background(Color.gray.opacity(0.3).clipShape(RoundedRectangle(cornerRadius:20)))
+                                    }
+                                
+                                // Submit All button outside of the NavigationLink
+                                                            Button(action: {
+                                                                let bookId = String(homework.studentBookId ?? 0)
+                                                                self.submitAnswers(studentBookId: bookId)
+                                                            }) {
+                                                                Text("Submit All")
+                                                            }
+                                                            .padding(.horizontal, 10)
+                            }
                         }
                     }
                 }
@@ -208,7 +216,7 @@ struct ContentView: View {
                     isLoginRequired = true
                 }
                 Task {
-                    let startDate = getDate(days: -7)
+                    let startDate = getDate(days: -28)
                     let endDate = getDate(days: 0)
 
                     if (userData != nil) {

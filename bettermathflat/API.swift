@@ -354,77 +354,9 @@ struct Sort: Codable {
     let empty: Bool?
 }
 
-// MARK: - SubmitProblem
+// MARK: - SubmitProblem Codable
 struct SubmitProblem: Codable {
     let worksheetProblemId: Int
     let unknown: Bool
     let userAnswer: String
 }
-
-//struct ProblemListResponse: Codable {
-//    let data: ProblemListDataContainer
-//}
-//
-//struct ProblemListDataContainer: Codable {
-//    let content: [ProblemListContentItem]
-//}
-//
-//struct ProblemListContentItem: Codable {
-//    let worksheetProblemId: Int
-//    let result: String
-//    let userAnswer: String
-//    let problem: Problem
-//    let handwrittenNoteUrl: String?
-//    let conceptHidden: Bool
-//}
-//
-//struct Problem: Codable {
-//    let id: Int
-//    let conceptId: Int
-//    let groupCode: Int
-//    let topicId: Int
-//    let subTopicId: Int
-//    let groupCase: String
-//    let type: String
-//    let optionCount: Int
-//    let level: Int
-//    let levelOfConceptChip: String
-//    let problemImageUrl: String
-//    let answerImageUrl: String
-//    let solutionImageUrl: String
-//    let answer: String
-//    let answerUnits: [AnswerUnit]
-//    let autoScoredType: String
-//    let autoScored: Bool
-//    let keypadTypes: [String]
-//    let hidden: Bool
-//    let trendy: Bool
-//    let sample: Bool
-//    let problemSummary: ProblemSummary
-//    let video: Video
-//    let index: Int
-//    let favorite: Bool
-//    let conceptName: String
-//    let tagTop: String
-//}
-//
-//struct AnswerUnit: Codable {
-//    let unit: String
-//    let index: Int
-//}
-//
-//struct ProblemSummary: Codable {
-//    let problemId: Int
-//    let totalUsed: Int
-//    let correctTimes: Int
-//    let wrongTimes: Int
-//    let answerRate: Int
-//}
-//
-//struct Video: Codable {
-//    let id: Int
-//    let title: String
-//    let thumbnailUrl: String
-//    let videoUrl: String
-//    let subtitleUrl: String
-//}
