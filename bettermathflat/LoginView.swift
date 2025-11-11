@@ -9,6 +9,7 @@ import SwiftUI
 
 struct LoginView: View {
     @State var phoneNumber = ""
+    @State var password = ""
     
     var body: some View {
         VStack {
@@ -17,8 +18,9 @@ struct LoginView: View {
                 .font(.largeTitle)
                 .padding()
             TextField("Please Enter Your Phone Number", text: $phoneNumber)
+            SecureField("Please Enter Your password", text: $password)
             Button("Login") {
-                login(phoneNumber: phoneNumber) { result in
+                login(phoneNumber: phoneNumber, password: password) { result in
                     switch result {
                     case .success(let responce):
                         print("Successed")

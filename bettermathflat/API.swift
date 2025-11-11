@@ -9,7 +9,7 @@ import Foundation
 
 
 // MARK: - login
-func login(phoneNumber: String, completion: @escaping (Result<LoginResponce, Error>) -> Void) {
+func login(phoneNumber: String, password: String, completion: @escaping (Result<LoginResponce, Error>) -> Void) {
     guard let url = URL(string: "https://api.mathflat.com/login") else {
         completion(.failure(NSError(domain: "Invalid URL", code: -1, userInfo: nil)))
         return
@@ -20,7 +20,7 @@ func login(phoneNumber: String, completion: @escaping (Result<LoginResponce, Err
     request.addValue("application/json", forHTTPHeaderField: "Content-Type")
     request.addValue("STUDENT", forHTTPHeaderField: "x-platform")
 
-    let parameters: [String: Any] = ["id": phoneNumber, "password": ""]
+    let parameters: [String: Any] = ["id": phoneNumber, "password": password]
     guard let httpBody = try? JSONSerialization.data(withJSONObject: parameters, options: []) else {
         completion(.failure(NSError(domain: "JSON Encoding Error", code: -2, userInfo: nil)))
         return
