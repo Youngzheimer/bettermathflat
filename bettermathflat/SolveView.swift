@@ -134,7 +134,7 @@ struct SolveView: View {
                 } else if (showExpImage) {
                     VStack {
                     if let problemImageUrl = problemList[currentProblem].problem?.solutionImageUrl {
-                        AsyncImage(url: URL(string: problemImageUrl)) { phase in
+                        AsyncImage(url: OfflineManager.shared.getLocalImageURL(for: problemImageUrl) ?? URL(string: problemImageUrl)) { phase in
                             switch phase {
                             case .empty:
                                 ProgressView()
@@ -166,7 +166,7 @@ struct SolveView: View {
                     // MARK: - 문제 이미지
                     VStack {
                         if let problemImageUrl = problemList[currentProblem].problem?.problemImageUrl {
-                            AsyncImage(url: URL(string: problemImageUrl)) { phase in
+                            AsyncImage(url: OfflineManager.shared.getLocalImageURL(for: problemImageUrl) ?? URL(string: problemImageUrl)) { phase in
                                 switch phase {
                                 case .empty:
                                     ProgressView()
@@ -337,10 +337,24 @@ struct SolveView: View {
                     switch result {
                     case .success(let problemListResponse):
                         print("ProblemListResponce 디코드 성공:")
-                        problemList = (problemListResponse.data?.content!)!
-                        savePreviousSubmitedAnswers()
+                        if let content = problemListResponse.data?.content {
+                            DispatchQueue.main.async {
+                                problemList = content
+                                savePreviousSubmitedAnswers()
+                            }
+                            // Save to cache
+                            OfflineManager.shared.saveProblemList(studentBookId: studentBookId, list: content)
+                        }
                     case .failure(let error):
                         print("ProblemListResponce 디코드 실패: \(error)")
+                        // Load from cache
+                        if let cached = OfflineManager.shared.loadProblemList(studentBookId: studentBookId) {
+                            print("Loaded from cache")
+                            DispatchQueue.main.async {
+                                problemList = cached
+                                savePreviousSubmitedAnswers()
+                            }
+                        }
                     }
                 }
             }
