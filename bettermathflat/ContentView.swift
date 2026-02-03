@@ -241,16 +241,23 @@ struct ContentView: View {
                     switch result {
                     case .success(let homeworkListResponse):
                         if let homeworkList = homeworkListResponse.data?.items {
-                            DispatchQueue.main.async {
-                                homeworks = homeworkList
+                            // Sort by updateDateTime descending (most recent first)
+                            let sortedList = homeworkList.sorted {
+                                ($0.updateDateTime ?? "") > ($1.updateDateTime ?? "")
                             }
-                            OfflineManager.shared.saveHomeworkList(homeworkList)
-                            OfflineManager.shared.cacheAllHomeworkDetails(token: userData!.token, homeworks: homeworkList)
+                            DispatchQueue.main.async {
+                                homeworks = sortedList
+                            }
+                            OfflineManager.shared.saveHomeworkList(sortedList)
+                            OfflineManager.shared.cacheAllHomeworkDetails(token: userData!.token, homeworks: sortedList)
                         }
                     case .failure:
                         if let cachedList = OfflineManager.shared.loadHomeworkList() {
                             DispatchQueue.main.async {
-                                homeworks = cachedList
+                                // Sort cached list as well
+                                homeworks = cachedList.sorted {
+                                    ($0.updateDateTime ?? "") > ($1.updateDateTime ?? "")
+                                }
                             }
                         }
                     }
